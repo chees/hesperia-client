@@ -10,7 +10,6 @@ function toggleHelp() {
 
   // Create and init the terminal
   var term = new Terminal('container');
-  term.initFS(false, 1024 * 1024);
 
   // Capture key presses
   document.body.addEventListener('keydown', function(e) {

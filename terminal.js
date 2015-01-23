@@ -86,30 +86,10 @@ function Sound(opt_loop) {
  */
 var Terminal = Terminal || function(containerId) {
 
-  window.URL = window.URL || window.webkitURL;
-  window.requestFileSystem = window.requestFileSystem ||
-                             window.webkitRequestFileSystem;
-
-  const VERSION_ = '1.0.0';
-  const CMDS_ = [
-    '3d', 'cat', 'cd', 'cp', 'clear', 'date', 'help', 'install', 'ls', 'mkdir',
-    'mv', 'open', 'pwd', 'rm', 'rmdir', 'theme', 'version', 'who', 'wget'
-  ];
-  const THEMES_ = ['default', 'cream'];
-
-  var fs_ = null;
-  var cwd_ = null;
   var history_ = [];
   var histpos_ = 0;
   var histtemp_ = 0;
 
-  var timer_ = null;
-  var magicWord_ = null;
-
-  var fsn_ = null;
-  var is3D_ = false;
-
-  // Create terminal and cache DOM nodes;
   var container_ = document.getElementById(containerId);
   container_.insertAdjacentHTML('beforeEnd',
       ['<output></output>',
@@ -122,7 +102,7 @@ var Terminal = Terminal || function(containerId) {
   var bell_ = new Sound(false);
   bell_.load('beep.mp3', false);
 
-  // Hackery to resize the interlace background image as the container grows.
+  // TODO is this still needed?
   output_.addEventListener('DOMSubtreeModified', function(e) {
     // Need this wrapped in a setTimeout. Chrome is jupming to top :(
     setTimeout(function() {
@@ -130,15 +110,6 @@ var Terminal = Terminal || function(containerId) {
     }, 0);
 
   }, false);
-
-  /*
-  output_.addEventListener('click', function(e) {
-    var el = e.target;
-    if (el.classList.contains('file') || el.classList.contains('folder')) {
-      cmdLine_.value += ' ' + el.textContent;
-    }
-  }, false);
-  */
 
   window.addEventListener('click', function(e) {
     if (e.target.nodeName.toLowerCase() != 'input') {
@@ -251,181 +222,7 @@ var Terminal = Terminal || function(containerId) {
       this.value = ''; // Clear/setup line for next input.
     }
   }
-
-  /**
-   * Updates the styles depending on the number of files
-   * that need to be displayed in the terminal.
-   *
-   * @param {Array} entries The file listing
-   */
-  function formatColumns_(entries) {
-    var maxName = entries[0].name;
-    util.toArray(entries).forEach(function(entry, i) {
-      if (entry.name.length > maxName.length) {
-        maxName = entry.name;
-      }
-    });
-
-    // If we have 3 or less entries, shorten the output container's height.
-    // 15px height with a monospace font-size of ~12px;
-    var height = entries.length == 1 ? 'height: ' + (entries.length * 30) + 'px;' :
-                 entries.length <= 3 ? 'height: ' + (entries.length * 18) + 'px;' : '';
-
-    // ~12px monospace font yields ~8px screen width.
-    var colWidth = maxName.length * 16;//;8;
-
-    return ['<div class="ls-files" style="-webkit-column-width:',
-            colWidth, 'px;', height, '">'];
-  }
-
-  /**
-   * Helper function to output an error code in a helpful message
-   *
-   * @param {Error} e The generated error
-   * @param {String} cmd The attempted command
-   * @param {String} dest The attempted command target
-   */
-  function invalidOpForEntryType_(e, cmd, dest) {
-    if (e.code == FileError.NOT_FOUND_ERR) {
-      output(cmd + ': ' + dest + ': No such file or directory<br>');
-    } else if (e.code == FileError.INVALID_STATE_ERR) {
-      output(cmd + ': ' + dest + ': Not a directory<br>');
-    } else if (e.code == FileError.INVALID_MODIFICATION_ERR) {
-      output(cmd + ': ' + dest + ': File already exists<br>');
-    } else {
-      errorHandler_(e);
-    }
-  }
-
-  /**
-   * Handler to convert errors to messages
-   *
-   * @param {Error} e The generated error
-   */
-  function errorHandler_(e) {
-    var msg = '';
-    switch (e.code) {
-      case FileError.QUOTA_EXCEEDED_ERR:
-        msg = 'QUOTA_EXCEEDED_ERR';
-        break;
-      case FileError.NOT_FOUND_ERR:
-        msg = 'NOT_FOUND_ERR';
-        break;
-      case FileError.SECURITY_ERR:
-        msg = 'SECURITY_ERR';
-        break;
-      case FileError.INVALID_MODIFICATION_ERR:
-        msg = 'INVALID_MODIFICATION_ERR';
-        break;
-      case FileError.INVALID_STATE_ERR:
-        msg = 'INVALID_STATE_ERR';
-        break;
-      default:
-        msg = 'Unknown Error';
-        break;
-    }
-    output('<div>Error: ' + msg + '</div>');
-  }
-
-  /**
-   * Creates a directory
-   *
-   * @param {DirectoryEntry} rooDirEntry The start point
-   * @param {Array} folders The subfolders to add
-   * @param {Function} opt_errorCallback Callback for errors
-   */
-  function createDir_(rootDirEntry, folders, opt_errorCallback) {
-    var errorCallback = opt_errorCallback || errorHandler_;
-
-    rootDirEntry.getDirectory(folders[0], {create: true}, function(dirEntry) {
-
-      // Recursively add the new subfolder if we still have a subfolder to create.
-      if (folders.length) {
-        createDir_(dirEntry, folders.slice(1));
-      }
-    }, errorCallback);
-  }
-
-  /**
-   * Gets a reference to a file
-   *
-   * @param {String} cmd The attempted command
-   * @param {String} path The file path
-   * @param {Function} successCallback Callback to pass the file reference
-   */
-  function open_(cmd, path, successCallback) {
-    if (!fs_) {
-      return;
-    }
-
-    cwd_.getFile(path, {}, successCallback, function(e) {
-      if (e.code == FileError.NOT_FOUND_ERR) {
-        output(cmd + ': ' + path + ': No such file or directory<br>');
-      }
-    });
-  }
-
-  /**
-   * Reads a file
-   *
-   * @param {String} cmd The attempted command
-   * @param {String} path The file path
-   * @param {Function} successCallback Callback to pass the file reference
-   */
-  function read_(cmd, path, successCallback) {
-    if (!fs_) {
-      return;
-    }
-
-    cwd_.getFile(path, {}, function(fileEntry) {
-      fileEntry.file(function(file) {
-        var reader = new FileReader();
-
-        reader.onloadend = function(e) {
-          successCallback(this.result);
-        };
-
-        reader.readAsText(file);
-      }, errorHandler_);
-    }, function(e) {
-      if (e.code == FileError.INVALID_STATE_ERR) {
-        output(cmd + ': ' + path + ': is a directory<br>');
-      } else if (e.code == FileError.NOT_FOUND_ERR) {
-        output(cmd + ': ' + path + ': No such file or directory<br>');
-      }
-    });
-  }
-
-  /**
-   * Read contents of current working directory. According to spec, need to
-   * keep calling readEntries() until length of result array is 0. We're
-   * guaranteed the same entry won't be returned again.
-   *
-   * @param {Function} successCallback Function to call when listing is done
-   */
-  function ls_(successCallback) {
-    if (!fs_) {
-      return;
-    }
-
-    var entries = [];
-    var reader = cwd_.createReader();
-
-    var readEntries = function() {
-      reader.readEntries(function(results) {
-        if (!results.length) {
-          entries = entries.sort();
-          successCallback(entries);
-        } else {
-          entries = entries.concat(util.toArray(results));
-          readEntries();
-        }
-      }, errorHandler_);
-    };
-
-    readEntries();
-  }
-
+  
   /**
    * Clears the terminal
    *
@@ -435,61 +232,6 @@ var Terminal = Terminal || function(containerId) {
     output_.innerHTML = '';
     input.value = '';
     document.documentElement.style.height = '100%';
-  }
-
-  /**
-   * Sets the terminal's theme by adding a class
-   * onto the document's body.
-   *
-   * @param {String} theme The name of the theme
-   */
-  function setTheme_(theme) {
-    var currentUrl = document.location.pathname;
-
-    if (!theme || theme == 'default') {
-      localStorage.removeItem('theme');
-      document.body.className = '';
-      return;
-    }
-
-    if (theme) {
-      document.body.classList.add(theme);
-      localStorage.theme = theme;
-    }
-  }
-
-  /**
-   * Toggles the terminal's CSS3D view
-   */
-  function toggle3DView_() {
-    var body = document.body;
-    body.classList.toggle('offscreen');
-
-    is3D_ = !is3D_;
-
-    if (body.classList.contains('offscreen')) {
-
-      container_.style.webkitTransform =
-          'translateY(' + (util.getDocHeight() - 175) + 'px)';
-
-      var transEnd_ = function(e) {
-        var iframe = document.createElement('iframe');
-        iframe.id = 'fsn';
-        iframe.src = '../fsn/fsn_proto.html';
-
-        fsn_ = body.insertBefore(iframe, body.firstElementChild);
-
-        iframe.contentWindow.onload = function() {
-          worker_.postMessage({cmd: 'read', type: type_, size: size_});
-        };
-        container_.removeEventListener('webkitTransitionEnd', transEnd_, false);
-      };
-      container_.addEventListener('webkitTransitionEnd', transEnd_, false);
-    } else {
-      container_.style.webkitTransform = 'translateY(0)';
-      body.removeChild(fsn_);
-      fsn_ = null;
-    }
   }
 
   /**
@@ -503,56 +245,7 @@ var Terminal = Terminal || function(containerId) {
   }
 
   return {
-    initFS: function(persistent, size) {
-      if (!!!window.requestFileSystem) {
-        output('<div>Sorry! The FileSystem APIs are not available in your browser.</div>');
-        return;
-      }
-
-      var type = persistent ? window.PERSISTENT : window.TEMPORARY;
-      type = type || 0;
-
-      window.requestFileSystem(type, size, function(filesystem) {
-        fs_ = filesystem;
-        cwd_ = fs_.root;
-        type_ = type;
-        size_ = size;
-
-        // If we get this far, attempt to create a folder to test if the
-        // --unlimited-quota-for-files fag is set.
-        cwd_.getDirectory('testquotaforfsfolder', {create: true}, function(dirEntry) {
-          dirEntry.remove(function() { // If successfully created, just delete it.
-            // noop.
-          });
-        }, function(e) {
-          if (e.code == FileError.QUOTA_EXCEEDED_ERR) {
-            output('ERROR: Write access to the FileSystem is unavailable.<br>');
-            output('Type "install" or run Chrome with the --unlimited-quota-for-files flag.');
-          } else {
-            errorHandler_(e);
-          }
-        });
-
-      }, errorHandler_);
-    },
     output: output,
-    setTheme: setTheme_,
-    getCmdLine: function() { return cmdLine_; },
-    addDroppedFiles: function(files) {
-      util.toArray(files).forEach(function(file, i) {
-        cwd_.getFile(file.name, {create: true, exclusive: true}, function(fileEntry) {
-
-          // Tell FSN visualizer we've added a file.
-          if (fsn_) {
-            fsn_.contentWindow.postMessage({cmd: 'touch', data: file.name}, location.origin);
-          }
-
-          fileEntry.createWriter(function(fileWriter) {
-            fileWriter.write(file);
-          }, errorHandler_);
-        }, errorHandler_);
-      });
-    },
-    toggle3DView: toggle3DView_
+    getCmdLine: function() { return cmdLine_; }
   };
 };
