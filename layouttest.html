@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Layout test</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    div {
+      border: 1px solid red;
+    }
+    .content {
+      display: flex;
+      justify-content: space-between;
+      height: 100%;
+    }
+    .panel {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .output {
+      min-height: 100px;
+      flex-grow: 1;
+      overflow-y: scroll;
+    }
+    .cmd {
+      flex: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="content">
+    <div class="panel">
+      <div class="output">
+        This should take up all vertical space
+        x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>x<br>
+      </div>
+      <input class="cmd">
+    </div>
+    <div class="panel">
+      <div class="output">
+        This should take up all vertical space
+      </div>
+      <input class="cmd">
+    </div>
+    <div class="panel">
+      <div class="output">
+        This should take up all vertical space
+      </div>
+      <input class="cmd">
+    </div>
+  </div>
+</body>
+</html>
