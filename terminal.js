@@ -60,7 +60,6 @@ function Sound(opt_loop) {
   this.play = function() {
     if (context_) {
       source_ = context_.createBufferSource();
-      window.bla = source_;
       source_.buffer = self_.sample;
       source_.looping = loop_;
       source_.connect(context_.destination);
@@ -86,6 +85,8 @@ function Sound(opt_loop) {
  */
 var Terminal = Terminal || function(containerId) {
 
+  var tcpClient;
+
   var history_ = [];
   var histpos_ = 0;
   var histtemp_ = 0;
@@ -93,11 +94,11 @@ var Terminal = Terminal || function(containerId) {
   var container_ = document.getElementById(containerId);
   container_.insertAdjacentHTML('beforeEnd',
       ['<output></output>',
-       '<div id="input-line" class="input-line">',
-       '<div><input class="cmdline" autofocus /></div>',
+       '<div class="input-line">',
+        '<input class="cmdline" autofocus />',
        '</div>'].join(''));
 
-  var cmdLine_ = container_.querySelector('#input-line .cmdline');
+  var cmdLine_ = container_.querySelector('.cmdline');
   var output_ = container_.querySelector('output');
   var bell_ = new Sound(false);
   bell_.load('beep.mp3', false);
@@ -111,7 +112,7 @@ var Terminal = Terminal || function(containerId) {
 
   }, false);
 
-  window.addEventListener('click', function(e) {
+  container_.addEventListener('click', function(e) {
     if (e.target.nodeName.toLowerCase() != 'input') {
       cmdLine_.focus();
     }
@@ -197,7 +198,8 @@ var Terminal = Terminal || function(containerId) {
     if (e.keyCode == 9) { // Tab
       e.preventDefault();
       // TODO(ericbidelman): Implement tab suggest.
-    } else if (e.keyCode == 13) { // enter
+    }
+    else if (e.keyCode == 13) { // enter
 
       // Save shell history.
       if (this.value) {
@@ -205,17 +207,22 @@ var Terminal = Terminal || function(containerId) {
         histpos_ = history_.length;
       }
 
+      if (this.value.indexOf(':') == 0) {
+        this.value = this.value.substring(1);
+        console.log('multi');
+      }
+      
       // Duplicate current input and append to output section.
-      var line = this.parentNode.parentNode.cloneNode(true);
-      line.removeAttribute('id');
+      //var line = this.parentNode.parentNode.cloneNode(true);
+      var line = this.parentNode.cloneNode(true);
       line.classList.add('line');
       var input = line.querySelector('input.cmdline');
       input.autofocus = false;
       input.readOnly = true;
       output_.appendChild(line);
-
+      
       // Send the command!
-      if (window.tcpClient) {
+      if (tcpClient) {
         tcpClient.sendMessage(this.value);
       }
 
@@ -244,8 +251,13 @@ var Terminal = Terminal || function(containerId) {
     cmdLine_.scrollIntoView();
   }
 
+  function setTcpClient(client) {
+    tcpClient = client;
+  }
+  
   return {
     output: output,
-    getCmdLine: function() { return cmdLine_; }
+    getCmdLine: function() { return cmdLine_; },
+    setTcpClient: setTcpClient
   };
 };

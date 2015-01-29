@@ -1,17 +1,20 @@
-/**
- * Shows and hides the help panel
- */
+﻿/*
 function toggleHelp() {
   document.querySelector('.help').classList.toggle('hidden');
   document.body.classList.toggle('dim');
 }
+*/
 
 (function() {
 
-  // Create and init the terminal
-  var term = new Terminal('container');
+  var ansiConv = new AnsiConverter();
+
+  var term1 = new Terminal('output1');
+  var term2 = new Terminal('output2');
+  var term3 = new Terminal('output3');
 
   // Capture key presses
+  /*
   document.body.addEventListener('keydown', function(e) {
     if (e.keyCode == 27) { // Esc
       toggleHelp();
@@ -19,15 +22,16 @@ function toggleHelp() {
       e.preventDefault();
     }
   }, false);
-
-  term.output('Press Esc for options.<br/>');
-
-  var ansiConv = new AnsiConverter();
+  */
+  
 
   var host = '149.210.199.92';
   var port = 7000;
-  connect(host, port);
+  connect(host, port, term1);
+  connect(host, port, term2);
+  connect(host, port, term3);
 
+  /*
   var button = document.getElementById('connect');
   button.addEventListener('click', function() {
     var host = document.getElementById('host').value;
@@ -36,25 +40,21 @@ function toggleHelp() {
     connect(host, port);
     toggleHelp();
   });
-
-  /**
-   * Connects to a host and port
-   *
-   * @param {String} host The remote host to connect to
-   * @param {Number} port The port to connect to at the remote host
-   */
-  function connect(host, port) {
-    tcpClient = new TcpClient(host, port);
+  */
+  
+  function connect(host, port, term) {
+    var tcpClient = new TcpClient(host, port);
     tcpClient.connect(function() {
+      term.setTcpClient(tcpClient);
       term.output('Connected to ' + host + ':' + port + '<br/>');
       tcpClient.addResponseListener(function(data) {
-        // Run response through ANSI colorizer.
-        //console.log(data);
-        // TODO this fails when the color code is split over 2 packages
+        // Strip Telnet negotiation characters:
+        if (data.indexOf('��U') != -1) {
+          data = data.substring(5);
+        }
+        // TODO this fails when the color code is split over 2 packages:
         var formattedData = ansiConv.formatAnsi(data);
-        // Split into multiple lines.
         var lines = formattedData.split('\n');
-        // Render response in the terminal.
         var output = lines.join('<br/>');
         term.output(output);
       });

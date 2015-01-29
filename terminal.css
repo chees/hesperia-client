@@ -162,3 +162,26 @@ button[disabled] {
 }
 
 #port { width: 50px; }
+
+
+
+.content {
+  display: flex;
+  justify-content: space-between;
+  height: 100%;
+}
+.panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 2px;
+  font-size: 15px;
+}
+.output {
+  min-height: 100px;
+  flex-grow: 1;
+  overflow-y: scroll;
+}
+.cmd {
+  flex: none;
+}

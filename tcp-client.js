@@ -136,7 +136,6 @@ Author: Boris Smus (smus@chromium.org)
     chrome.sockets.tcp.onReceiveError.addListener(this._onReceiveError);
 
     if (this.callbacks.connect) {
-      console.log('connect complete');
       this.callbacks.connect();
     }
     log('onConnectComplete');
@@ -234,7 +233,7 @@ Author: Boris Smus (smus@chromium.org)
    * Wrapper function for logging
    */
   function log(msg) {
-    console.log(msg);
+    //console.log(msg);
   }
 
   /**
