@@ -27,6 +27,9 @@ var term3 = new Terminal('output3');
         if (data.indexOf('��U') != -1) {
           data = data.substring(5);
         }
+        data = data.replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
         // TODO this fails when the color code is split over 2 network packets:
         var formattedData = ansiConv.formatAnsi(data);
         var lines = formattedData.split('\n');
