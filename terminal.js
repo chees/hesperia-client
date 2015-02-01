@@ -1,21 +1,5 @@
-var util = util || {};
-util.toArray = function(list) {
-  return Array.prototype.slice.call(list || [], 0);
-};
-
-// Cross-browser impl to get document's height.
-util.getDocHeight = function() {
-  var d = document;
-  return Math.max(
-      Math.max(d.body.scrollHeight, d.documentElement.scrollHeight),
-      Math.max(d.body.offsetHeight, d.documentElement.offsetHeight),
-      Math.max(d.body.clientHeight, d.documentElement.clientHeight)
-  );
-};
-
-
 /**
- * Creates a audio context to play sounds
+ * Creates an audio context to play sounds
  */
 function Sound(opt_loop) {
 
@@ -86,6 +70,7 @@ function Sound(opt_loop) {
 var Terminal = Terminal || function(containerId) {
 
   var tcpClient;
+  var nextTerminal;
 
   var history_ = [];
   var histpos_ = 0;
@@ -93,13 +78,13 @@ var Terminal = Terminal || function(containerId) {
 
   var container_ = document.getElementById(containerId);
   container_.insertAdjacentHTML('beforeEnd',
-      ['<output></output>',
+      ['<div class="out"></div>',
        '<div class="input-line">',
         '<input class="cmdline" autofocus />',
        '</div>'].join(''));
 
   var cmdLine_ = container_.querySelector('.cmdline');
-  var output_ = container_.querySelector('output');
+  var output_ = container_.querySelector('.out');
   var bell_ = new Sound(false);
   bell_.load('beep.mp3', false);
 
@@ -190,14 +175,14 @@ var Terminal = Terminal || function(containerId) {
   function processNewCommand_(e) {
     // Beep on backspace and no value on command line.
     if (!this.value && e.keyCode == 8) {
-      bell_.stop();
-      bell_.play();
+      //bell_.stop();
+      //bell_.play();
       return;
     }
 
     if (e.keyCode == 9) { // Tab
       e.preventDefault();
-      // TODO(ericbidelman): Implement tab suggest.
+      nextTerminal.getCmdLine().focus();
     }
     else if (e.keyCode == 13) { // enter
 
@@ -208,8 +193,9 @@ var Terminal = Terminal || function(containerId) {
       }
 
       if (this.value.indexOf(':') == 0) {
-        this.value = this.value.substring(1);
-        console.log('multi');
+        sendAll(this.value.substring(1));
+        this.value = '';
+        return;
       }
       
       // Duplicate current input and append to output section.
@@ -255,9 +241,19 @@ var Terminal = Terminal || function(containerId) {
     tcpClient = client;
   }
   
+  function getTcpClient() {
+    return tcpClient;
+  }
+  
+  function setNextTerminal(next) {
+    nextTerminal = next;
+  }
+  
   return {
     output: output,
     getCmdLine: function() { return cmdLine_; },
-    setTcpClient: setTcpClient
+    setTcpClient: setTcpClient,
+    getTcpClient: getTcpClient,
+    setNextTerminal: setNextTerminal
   };
 };
