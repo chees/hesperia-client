@@ -31,11 +31,10 @@ var term3 = new Terminal('output3');
           .replace(/</g, '&lt;')
           .replace(/>/g, '&gt;');
         // TODO this fails when the color code is split over 2 network packets:
-        var formattedData = ansiConv.formatAnsi(data);
-        //formattedData = formattedData.replace(/(http|https):\/\/\S*/g, '<a href="$&" target="_blank">$&</a>');
-        formattedData = formattedData.replace(/(http|https):\/\/[^<|\n ]*/g, '<a href="$&" target="_blank">$&</a>');
-        var lines = formattedData.split('\n');
-        var output = lines.join('<br/>');
+        var output = ansiConv.formatAnsi(data)
+          .replace(/(http|https):\/\/[^<|\n ]*/g, '<a href="$&" target="_blank">$&</a>')
+          .split('\n')
+          .join('<br/>');
         term.output(output);
       });
     });
